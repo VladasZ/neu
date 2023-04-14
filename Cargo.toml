@@ -1,0 +1,8 @@
+[package]
+name = "neu"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+rtools = "0.1.35"
