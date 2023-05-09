@@ -44,9 +44,9 @@ impl Random for Doubler {
 
 #[derive(Debug)]
 struct Selection<S: Species<f32, f32>, const GENERATION_SIZE: usize> {
-    // generation: usize,
-    species: [S; GENERATION_SIZE],
-    bestest: S,
+    generation: usize,
+    species:    [S; GENERATION_SIZE],
+    bestest:    S,
 }
 
 impl<S: Species<f32, f32>, const GENERATION_SIZE: usize> Selection<S, GENERATION_SIZE> {
@@ -56,18 +56,26 @@ impl<S: Species<f32, f32>, const GENERATION_SIZE: usize> Selection<S, GENERATION
             *sp = S::random()
         }
         Self {
-            // generation: 0,
+            generation: 0,
             species,
             bestest: S::random(),
         }
     }
 
-    fn generation(&mut self, input: f32, output: f32) {
-        for sp in &mut self.species {
-            let result = sp.live(input);
-            let error = (output - result).abs();
-            sp.set_error(error);
+    fn trial_species(species: &mut S, expected: &[(f32, f32)]) {
+        let mut error = f32::default();
+        for trial in expected {
+            let result = species.live(trial.0);
+            error += (trial.1 - result).abs();
         }
+        species.set_error(error)
+    }
+
+    fn generation(&mut self, expected: &[(f32, f32)]) {
+        for sp in &mut self.species {
+            Self::trial_species(sp, expected);
+        }
+        self.generation += 1;
     }
 
     fn selection(&mut self) {
@@ -92,17 +100,30 @@ impl<S: Species<f32, f32>, const GENERATION_SIZE: usize> Selection<S, GENERATION
         dbg!(self.bestest.error());
         self.species.iter().map(|s| s.error()).sum()
     }
+
+    fn apex(&self) -> Option<&S> {
+        self.species.iter().find(|s| s.error() == 0.0)
+    }
 }
 
 fn main() {
     let mut sel = Selection::<Doubler, 20>::new();
     dbg!(&sel);
 
+    let mut apex = Doubler::random();
+
     loop {
-        sel.generation(2.0, 4.0);
+        sel.generation(&[(2.0, 4.0), (5.0, 10.0), (100.0, 200.0)]);
         sel.selection();
-        sel.mutate(-0.001..0.001);
-        dbg!(sel.total_error());
-        sleep(0.01);
+        sel.mutate(-0.0001..0.0001);
+
+        if let Some(ap) = sel.apex() {
+            apex = *ap;
+            break;
+        }
     }
+
+    dbg!(&sel);
+
+    dbg!(&apex);
 }

@@ -5,4 +5,4 @@ edition = "2021"
 
 
 [dependencies]
-rtools = "0.1.37"
+rtools = "0.1.39"
